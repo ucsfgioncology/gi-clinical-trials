@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UCSF GI Clinical Trials Dashboard — March 2026</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:12px;background:#f0f0f0;padding:16px}
+.page-card{background:#fff;border:1px solid #d0d0d0;border-radius:4px;margin-bottom:12px;padding:16px 20px;text-align:center}
+.page-card h1{font-size:18px;font-weight:700;color:#1F3864;margin-bottom:6px}
+.page-card p{font-size:11px;color:#555;margin:3px 0}
+.page-card a{color:#185FA5;text-decoration:none}
+.page-card a:hover{text-decoration:underline}
+.controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.ctrl-btn{padding:5px 14px;border:1px solid #aaa;border-radius:3px;background:#fff;font-size:11px;cursor:pointer;color:#333}
+.ctrl-btn:hover{background:#e8eef7;border-color:#4472C4;color:#1F3864}
+.search-box{padding:5px 10px;border:1px solid #aaa;border-radius:3px;font-size:11px;width:240px}
+.search-box:focus{outline:none;border-color:#4472C4}
+.section-block{background:#fff;border:1px solid #d0d0d0;border-radius:4px;margin-bottom:8px;overflow:hidden}
+.section-hdr{display:flex;align-items:center;padding:0 12px;height:38px;cursor:pointer;user-select:none}
+.section-hdr:hover{filter:brightness(1.08)}
+.toggle-icon{font-size:11px;margin-right:9px;color:#fff;font-weight:700;min-width:14px;transition:transform 0.2s}
+.section-label{font-size:12px;font-weight:700;color:#fff;flex:1}
+.section-count{font-size:11px;color:rgba(255,255,255,0.85);margin-right:6px}
+.section-body{overflow:hidden;transition:max-height 0.28s ease}
+.scroll-area{overflow-y:auto;overflow-x:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:900px}
+.col-hdr-row th{background:#D6E4F7;padding:7px 8px;text-align:left;font-size:10px;font-weight:700;color:#1F3864;border-bottom:1px solid #b0c4de;border-right:0.5px solid #ccc;white-space:nowrap;overflow:hidden;position:sticky;top:0;z-index:2}
+th:last-child,td:last-child{border-right:none}
+td{padding:7px 8px;vertical-align:top;border-bottom:0.5px solid #e0e0e0;border-right:0.5px solid #e8e8e8;font-size:11px;color:#222;line-height:1.45;word-break:break-word}
+tr:hover td{background:#f0f5ff!important}
+.c-id{width:88px}
+.c-nct{width:96px}
+.c-title{width:22%}
+.c-status{width:84px}
+.c-pop{width:11%}
+.c-bio{width:8%}
+.c-phase{width:74px}
+.c-pi{width:10%}
+.c-contact{width:12%}
+.c-phone{width:96px}
+.c-email{width:14%}
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700}
+.b-open{background:#00B050;color:#fff}
+.b-soon{background:#BDD7EE;color:#1F497D}
+.b-obs{background:#E2EFDA;color:#375623}
+.sid{font-weight:700;color:#1F3864}
+.nct-link{color:#185FA5;font-size:10px;text-decoration:none}
+.nct-link:hover{text-decoration:underline}
+.cname{font-weight:600;display:block}
+.cphone{color:#555;font-size:10px;display:block}
+.cemail{color:#185FA5;font-size:10px;text-decoration:none}
+.cemail:hover{text-decoration:underline}
+.row-shade{background:#f7f7f7}
+.no-results{text-align:center;padding:20px;color:#888;font-style:italic}
+.edit-note{font-size:10px;color:#888;text-align:right;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div class="page-card">
+  <h1>GI Clinical Trials Dashboard — UCSF</h1>
+  <p>UCSF Helen Diller Comprehensive Cancer Center &nbsp;·&nbsp; Gastrointestinal Oncology &nbsp;·&nbsp; March 2026</p>
+  <p style="margin-top:5px">Contact: <strong>Jennifer Luan</strong>, Clinical Research Manager &nbsp;·&nbsp; (415) 502-3310 &nbsp;·&nbsp; <a href="mailto:jennifer.luan@ucsf.edu">jennifer.luan@ucsf.edu</a></p>
+  <p style="margin-top:4px">
+    <a href="https://clinicaltrials.ucsf.edu/" target="_blank">clinicaltrials.ucsf.edu</a> &nbsp;|&nbsp;
+    <a href="https://cancer.ucsf.edu/support/immunotherapy/cancer-immunotherapy-clinical-trials" target="_blank">Cancer Immunotherapy Program</a> &nbsp;|&nbsp;
+    <a href="https://www.ucsfhealth.org/clinics/cancer-clinical-trials-and-investigational-treatments-center" target="_blank">Cancer Clinical Trials &amp; Investigational Treatments</a>
+  </p>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn" onclick="expandAll()">&#9660; Expand All</button>
+  <button class="ctrl-btn" onclick="collapseAll()">&#9658; Collapse All</button>
+  <input class="search-box" type="text" id="search" placeholder="Search by ID, title, contact, NCT..." oninput="filterTrials()">
+</div>
+<div class="edit-note">To edit: open this file in a text editor and update the TRIALS data in the &lt;script&gt; section at the bottom.</div>
+
+<div id="sections-container"></div>
+
+<script>
+const COLS = [
+  {label:'Study ID',cls:'c-id'},
+  {label:'NCT Number',cls:'c-nct'},
+  {label:'Protocol Short Title',cls:'c-title'},
+  {label:'Status',cls:'c-status'},
+  {label:'Eligible Population',cls:'c-pop'},
+  {label:'Biomarker',cls:'c-bio'},
+  {label:'Phase',cls:'c-phase'},
+  {label:'Principal Investigator',cls:'c-pi'},
+  {label:'Contact',cls:'c-contact'},
+  {label:'Phone',cls:'c-phone'},
+  {label:'Email',cls:'c-email'},
+];
+
+// ============================================================
+// TRIAL DATA — edit this section to add, remove, or update trials
+// Each trial: {id, nct, title, status, pop, bio, phase, pi, contact, phone, email}
+// Status options: 'Open' | 'Opening Soon' | 'Non-therapeutic' | 'Observational' | 'Biobank' | 'Behavioral' | 'Imaging'
+// ============================================================
+const SECTIONS = [
+  {
+    key:'colorectal',
+    label:'Colorectal Studies',
+    color:'#4472C4',
+    maxH:280,
+    trials:[
+      {id:'CC#22075',nct:'NCT05319314',title:'Phase I Safety & Tolerability of CGG19CART in Relapsed/Refractory Metastatic Colorectal Cancer',status:'Open',pop:'Relapsed/Refractory mCRC',bio:'—',phase:'Phase I',pi:'TBD',contact:'Harika Gopi',phone:'(415) 818-4579',email:'harika.gopi@ucsf.edu'},
+      {id:'CC#21708',nct:'NCT04626635',title:'REGN7075 (EGFR×CD28 Bispecific) + Cemiplimab in Advanced Solid Tumors',status:'Open',pop:'Advanced Solid Tumors',bio:'EGFR',phase:'Phase 1/2',pi:'TBD',contact:'Sylvan Muellerleile',phone:'(415) 309-0245',email:'Sylvan.Muellerleile@ucsf.edu'},
+      {id:'CC#134510',nct:'',title:'GIMP: Molecular Profiling in GI Malignancies',status:'Non-therapeutic',pop:'GI Malignancies',bio:'Multiple',phase:'Observational',pi:'TBD',contact:'Banaz Shwan',phone:'(415) 205-8214',email:'Banaz.Shwan@ucsf.edu'},
+      {id:'CC#21456',nct:'NCT05056077',title:'Tools To Be Fit: Nutrition & Physical Activity for Cancer Survivors',status:'Non-therapeutic',pop:'Cancer Survivors',bio:'—',phase:'Behavioral',pi:'TBD',contact:'Miriam Oseguera',phone:'(415) 215-4475',email:'toolstobefit@ucsf.edu'},
+    ]
+  },
+  {
+    key:'hepato',
+    label:'Hepatocellular & Biliary Tract Studies',
+    color:'#7030A0',
+    maxH:340,
+    trials:[
+      {id:'CC#194522',nct:'NCT04430452',title:'Durvalumab ± Tremelimumab for Advanced HCC after Palliative Hypofractionated Radiotherapy',status:'Open',pop:'Advanced HCC',bio:'—',phase:'Phase II',pi:'TBD',contact:'Mina Mahdi',phone:'(415) 205-8117',email:'baraka.mahdi@ucsf.edu'},
+      {id:'CC#204517',nct:'NCT04524871',title:'Morpheus-Liver: Immunotherapy Combinations in Advanced Liver Cancers',status:'Open',pop:'Advanced Liver Cancer',bio:'—',phase:'Phase 1b/2',pi:'TBD',contact:'Corona Smith',phone:'(415) 205-4812',email:'Corona.Smith@ucsf.edu'},
+      {id:'CC#234510',nct:'NCT06160752',title:'SURF-201: TYRA-200 in Advanced Intrahepatic Cholangiocarcinoma (FGFR2)',status:'Open',pop:'iCCA, FGFR2-altered',bio:'FGFR2',phase:'Phase I FIH',pi:'TBD',contact:'Sandy He',phone:'(415) 671-9917',email:'Sandy.He@ucsf.edu'},
+      {id:'CC#244512',nct:'NCT06467357',title:'T-DXd + Rilvegostomig vs GemCisDurvalumab in HER2+ Biliary Tract Cancer (1L)',status:'Open',pop:'HER2+ Biliary Tract',bio:'HER2',phase:'Phase 3',pi:'TBD',contact:'Corona Smith',phone:'(415) 205-4812',email:'Corona.Smith@ucsf.edu'},
+      {id:'CC#244519',nct:'NCT06915753',title:'SURF-431: TYRA-430 in Advanced HCC and FGF/FGFR-aberrant Solid Tumors',status:'Open',pop:'Advanced HCC, FGFR',bio:'FGF/FGFR',phase:'Phase I FIH',pi:'TBD',contact:'Sandy He',phone:'(415) 671-9917',email:'Sandy.He@ucsf.edu'},
+      {id:'CC#254514',nct:'NCT07129252',title:'ZW251 (GPC3-targeting ADC) in Advanced Solid Tumors including HCC',status:'Open',pop:'Advanced Solid Tumors, HCC',bio:'GPC3',phase:'Phase I FIH',pi:'TBD',contact:'Corona Smith',phone:'(415) 205-4812',email:'Corona.Smith@ucsf.edu'},
+      {id:'CC#124512',nct:'',title:'UCSF Hepatobiliary Tissue Bank and Registry',status:'Non-therapeutic',pop:'Hepatobiliary Cancers',bio:'—',phase:'Biobank',pi:'TBD',contact:'Banaz Shwan',phone:'(415) 205-8214',email:'hbtbr-cc124512@ucsf.edu'},
+    ]
+  },
+  {
+    key:'neuro',
+    label:'Neuroendocrine Tumor Studies',
+    color:'#C55A11',
+    maxH:320,
+    trials:[
+      {id:'CC#22958',nct:'NCT05746208',title:'Lenvatinib + Pembrolizumab in Well-Differentiated G3 NETs',status:'Open',pop:'G3 Well-Differentiated NETs',bio:'—',phase:'Phase II',pi:'TBD',contact:'Mina Mahdi',phone:'(415) 205-8117',email:'baraka.mahdi@ucsf.edu'},
+      {id:'CC#254515',nct:'NCT07129252',title:'CRN09682 in Progressive Metastatic SST2-Expressing Neuroendocrine Neoplasms',status:'Open',pop:'SST2+ NETs, NENs',bio:'SST2',phase:'Phase 1/2',pi:'TBD',contact:'Mina Mahdi',phone:'(415) 205-8117',email:'baraka.mahdi@ucsf.edu'},
+      {id:'A021901',nct:'NCT04665739',title:'Lu177 DOTATATE vs Everolimus in Somatostatin Receptor+ Bronchial NETs',status:'Open',pop:'SR+ Bronchial NETs',bio:'Somatostatin R+',phase:'Phase II',pi:'TBD',contact:'Mina Choi',phone:'(415) 917-9365',email:'mina.choi@ucsf.edu'},
+      {id:'CC#23708',nct:'NCT05882058',title:'DAREON-5: BI764532 (DLL3 T-cell engager) in R/R SCLC & Neuroendocrine Carcinomas',status:'Open',pop:'R/R ES-SCLC, NEC',bio:'DLL3',phase:'Phase II',pi:'TBD',contact:'Kira Chan',phone:'(415) 309-1810',email:'Kira.Chan@ucsf.edu'},
+      {id:'CC#23702',nct:'NCT04471727',title:'HPN328 ± Atezolizumab or I-DXd in DLL3-expressing Advanced Cancers',status:'Open',pop:'DLL3+ Advanced Cancers',bio:'DLL3',phase:'Phase 1/2',pi:'TBD',contact:'Stefanie Chen',phone:'—',email:'Stefanie.Chen@ucsf.edu'},
+      {id:'CC#25953',nct:'NCT06885281',title:'ZL-1310 in Selected Solid Tumors — enrolling GEP-NEC, NEPC',status:'Open',pop:'GEP-NEC, NEPC',bio:'DLL3',phase:'Phase Ib/II',pi:'TBD',contact:'Clara Cho',phone:'(415) 969-0533',email:'Clara.cho@ucsf.edu'},
+      {id:'CC#194520',nct:'',title:'NET Voices: Web-Based QoL Study in Neuroendocrine Tumor Patients',status:'Non-therapeutic',pop:'NET Patients',bio:'—',phase:'Observational',pi:'TBD',contact:'Farhana Moon',phone:'—',email:'Farhana.Moon@ucsf.edu'},
+    ]
+  },
+  {
+    key:'pancreatic',
+    label:'Pancreatic Studies',
+    color:'#7030A0',
+    maxH:280,
+    trials:[
+      {id:'CC#23456',nct:'NCT05968326',title:'Autogene Cevumeran + Atezolizumab + mFOLFIRINOX vs mFOLFIRINOX in Resected PDAC',status:'Open',pop:'Resected PDAC',bio:'—',phase:'Phase II',pi:'TBD',contact:'Luke Getchell',phone:'(415) 218-7472',email:'luke.getchell@ucsf.edu'},
+      {id:'CC#249513',nct:'NCT06130553',title:'PRIMROSE: AZD3470 (PRMT5 Inhibitor) in MTAP-Deficient Advanced Solid Tumors',status:'Open',pop:'MTAP-deficient solid tumors',bio:'MTAP deletion',phase:'Phase I/IIa',pi:'TBD',contact:'Cindy Zhang / Zach Schoenherr',phone:'(415) 987-4261',email:'cindy.zhang@ucsf.edu'},
+      {id:'CC#224524',nct:'NCT04970056',title:'PRECEDE: Pancreatic Cancer Early Detection Consortium',status:'Non-therapeutic',pop:'High-risk, PDAC',bio:'—',phase:'Observational',pi:'TBD',contact:'Rachael Leigh Delacruz',phone:'(415) 476-2874',email:'rachaelleigh.delacruz@ucsf.edu'},
+      {id:'CC#24928',nct:'NCT06600906',title:'Hyperpolarized 13C MRI to Predict Treatment Response in Pancreatic Cancer',status:'Non-therapeutic',pop:'Pancreatic Cancer',bio:'—',phase:'Imaging',pi:'TBD',contact:'Jane Wang, MD',phone:'—',email:'Zhen.Wang@ucsf.edu'},
+    ]
+  },
+  {
+    key:'solid',
+    label:'Advanced or Metastatic Solid Tumor Studies',
+    color:'#375623',
+    maxH:120,
+    trials:[
+      {id:'CC#25703',nct:'NCT06778863',title:'CLSP-1025 in Solid Tumors with p53 R175H Mutation',status:'Open',pop:'p53 R175H solid tumors',bio:'p53 R175H',phase:'Phase I',pi:'TBD',contact:'Marissa Gin',phone:'(415) 307-5697',email:'marissa.gin@ucsf.edu'},
+    ]
+  },
+  {
+    key:'other',
+    label:'Other Non-Therapeutic Studies',
+    color:'#595959',
+    maxH:120,
+    trials:[
+      {id:'CC#25802',nct:'NCT07165600',title:'Yoga to Improve Disparities in Cancer Survivorship',status:'Non-therapeutic',pop:'Cancer Survivors',bio:'—',phase:'Behavioral',pi:'TBD',contact:'Luke Getchell',phone:'(415) 218-7472',email:'luke.getchell@ucsf.edu'},
+    ]
+  },
+  {
+    key:'coming',
+    label:'★  To Be Opened Within 3 Months',
+    color:'#7F6000',
+    maxH:160,
+    trials:[
+      {id:'CC#254518',nct:'NCT07252232',title:'RASolute 304: Adjuvant Daraxonrasib vs SOC Observation in Resected PDAC',status:'Opening Soon',pop:'Resected PDAC',bio:'KRAS',phase:'Phase 3',pi:'TBD',contact:'Kevin Lopez',phone:'(415) 502-2110',email:'Kevin.Lopez@ucsf.edu'},
+      {id:'CC#254519',nct:'NCT07222800',title:'PF-08634404 + Chemo vs Bevacizumab + Chemo in Treatment-Naïve Metastatic CRC',status:'Opening Soon',pop:'Treatment-naïve mCRC',bio:'—',phase:'Phase 3',pi:'TBD',contact:'Bryan Le',phone:'(415) 502-3110',email:'BryanKhuong.Le@ucsf.edu'},
+    ]
+  },
+];
+
+function statusBadge(s) {
+  if (s === 'Open') return `<span class="badge b-open">Open</span>`;
+  if (s === 'Opening Soon') return `<span class="badge b-soon">Opening Soon</span>`;
+  return `<span class="badge b-obs">${s}</span>`;
+}
+
+const sectionState = {};
+
+function buildAllSections(query) {
+  const container = document.getElementById('sections-container');
+  container.innerHTML = '';
+  const q = (query || '').toLowerCase().trim();
+
+  SECTIONS.forEach(sec => {
+    const filtered = q
+      ? sec.trials.filter(t =>
+          t.id.toLowerCase().includes(q) ||
+          t.title.toLowerCase().includes(q) ||
+          t.nct.toLowerCase().includes(q) ||
+          t.contact.toLowerCase().includes(q) ||
+          t.pop.toLowerCase().includes(q) ||
+          t.bio.toLowerCase().includes(q) ||
+          t.pi.toLowerCase().includes(q)
+        )
+      : sec.trials;
+
+    if (filtered.length === 0 && q) return;
+
+    const open = sectionState[sec.key] !== false;
+    const block = document.createElement('div');
+    block.className = 'section-block';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'section-hdr';
+    hdr.style.background = sec.color;
+    hdr.innerHTML = `<span class="toggle-icon" id="icon-${sec.key}">${open ? '&#9660;' : '&#9658;'}</span><span class="section-label">${sec.label}</span><span class="section-count">${filtered.length} trial${filtered.length !== 1 ? 's' : ''}</span>`;
+
+    const body = document.createElement('div');
+    body.className = 'section-body';
+    body.id = `body-${sec.key}`;
+    body.style.maxHeight = open ? sec.maxH + 'px' : '0';
+    if (!open) body.classList.add('collapsed');
+
+    const scrollArea = document.createElement('div');
+    scrollArea.className = 'scroll-area';
+    scrollArea.style.maxHeight = sec.maxH + 'px';
+
+    let tableHTML = `<table><thead><tr class="col-hdr-row">`;
+    COLS.forEach(c => { tableHTML += `<th class="${c.cls}">${c.label}</th>`; });
+    tableHTML += `</tr></thead><tbody>`;
+
+    if (filtered.length === 0) {
+      tableHTML += `<tr><td colspan="${COLS.length}" class="no-results">No trials in this section.</td></tr>`;
+    } else {
+      filtered.forEach((t, i) => {
+        const shade = i % 2 === 1 ? ' class="row-shade"' : '';
+        const nctCell = t.nct
+          ? `<a class="nct-link" href="https://clinicaltrials.gov/study/${t.nct}" target="_blank">${t.nct}</a>`
+          : '—';
+        tableHTML += `<tr${shade}>
+          <td><span class="sid">${t.id}</span></td>
+          <td>${nctCell}</td>
+          <td>${t.title}</td>
+          <td>${statusBadge(t.status)}</td>
+          <td>${t.pop}</td>
+          <td>${t.bio}</td>
+          <td>${t.phase}</td>
+          <td>${t.pi}</td>
+          <td><span class="cname">${t.contact}</span></td>
+          <td><span class="cphone">${t.phone}</span></td>
+          <td><a class="cemail" href="mailto:${t.email}">${t.email}</a></td>
+        </tr>`;
+      });
+    }
+    tableHTML += `</tbody></table>`;
+    scrollArea.innerHTML = tableHTML;
+    body.appendChild(scrollArea);
+
+    hdr.addEventListener('click', () => {
+      const isOpen = sectionState[sec.key] !== false;
+      sectionState[sec.key] = !isOpen;
+      const b = document.getElementById(`body-${sec.key}`);
+      const icon = document.getElementById(`icon-${sec.key}`);
+      if (isOpen) {
+        b.style.maxHeight = '0';
+        b.classList.add('collapsed');
+        icon.innerHTML = '&#9658;';
+      } else {
+        b.style.maxHeight = sec.maxH + 'px';
+        b.classList.remove('collapsed');
+        icon.innerHTML = '&#9660;';
+      }
+    });
+
+    block.appendChild(hdr);
+    block.appendChild(body);
+    container.appendChild(block);
+  });
+}
+
+function filterTrials() {
+  buildAllSections(document.getElementById('search').value);
+}
+
+function expandAll() {
+  SECTIONS.forEach(s => { sectionState[s.key] = true; });
+  buildAllSections(document.getElementById('search').value);
+}
+
+function collapseAll() {
+  SECTIONS.forEach(s => { sectionState[s.key] = false; });
+  buildAllSections(document.getElementById('search').value);
+}
+
+buildAllSections('');
+</script>
+</body>
+</html>
